@@ -28,13 +28,19 @@ report 50630 customerAgingReport
                 looper: Integer;
                 second_Date_Start: Date;
                 store_date_started: Date;
+                month_interval_modified: Code[5];
             begin
                 customerAgingTable_KSS.Reset();
                 customerAgingTable_KSS.DeleteAll();
-                if Date_start <> 0D then begin
-                    intervalFieldOne := Format(Date_start) + '-' + Format(Date_start + 30);
-                    intervalFieldTwo := Format(Date_start + 31) + '-' + Format(Date_start + 31 + 30);
-                    intervalFieldThree := Format(Date_start + 31 + 31) + '-' + Format(Date_start + 31 + 31 + 30);
+                if (Date_start <> 0D) and (month_interval <> 0) then begin
+                    month_interval_modified := Format(month_interval + 'M');
+
+                    // intervalFieldOne := Format(Date_start) + '-' + Format(CalcDate('-1D', CalcDate(month_interval_modified, Date_start)));
+
+                    // intervalFieldTwo := Format(CalcDate(month_interval_modified, Date_start)) + '-' + Format(CalcDate('-1D', CalcDate(month_interval_modified, CalcDate(month_interval_modified, Date_start))));
+
+                    // intervalFieldThree := Format(CalcDate(month_interval_modified, CalcDate(month_interval_modified, Date_start))) + '-' + Format(CalcDate('-1D', CalcDate(month_interval_modified, CalcDate(month_interval_modified, CalcDate(month_interval_modified, Date_start)))));
+
                     store_date_started := Date_start;
                     if custRecord.FindSet() then
                         repeat
@@ -60,10 +66,21 @@ report 50630 customerAgingReport
                             for looper := 1 to 3 do begin
                                 if looper <> 1 then begin
                                     Date_start := second_Date_Start + 1;
-                                    second_Date_Start += 30;
+                                    second_Date_Start := DMY2DATE(1, DATE2DMY(Date_start, 2) + month_interval, DATE2DMY(Date_start, 3));
+                                    if (intervalFieldTwo = '') and (looper = 2) then begin
+                                        intervalFieldTwo := Format(Date_start) + '-' + Format(second_Date_Start);
+                                    end;
+
+                                    if (intervalFieldThree = '') and (looper = 3) then begin
+                                        intervalFieldThree := Format(Date_start) + '-' + Format(second_Date_Start);
+                                    end;
                                 end
                                 else begin
-                                    second_Date_Start := Date_start + 30;
+                                    Date_start := DMY2Date(1, Date2DMY(Date_start, 2), Date2DMY(Date_start, 3));
+                                    second_Date_Start := DMY2DATE(1, DATE2DMY(Date_start, 2) + month_interval, DATE2DMY(Date_start, 3));
+                                    if intervalFieldOne = '' then begin
+                                        intervalFieldOne := Format(Date_start) + '-' + Format(second_Date_Start);
+                                    end;
                                 end;
                                 custLedEntry.Reset();
                                 custLedEntry.SetRange("Customer No.", custRecord."No.");
@@ -88,7 +105,7 @@ report 50630 customerAgingReport
                         until custRecord.Next() = 0;
                 end
                 else
-                    Error('Give Starting Date Please');
+                    Error('Give Starting Date Please or Give Month Interval(Zero Not Allowed)');
             end;
         }
     }
@@ -108,6 +125,11 @@ report 50630 customerAgingReport
                         Caption = 'Starting Date';
                         ApplicationArea = All;
                     }
+                    field(month_interval; month_interval)
+                    {
+                        Caption = 'Enter Month Interval';
+                        ApplicationArea = All;
+                    }
                 }
             }
         }
@@ -125,6 +147,7 @@ report 50630 customerAgingReport
     }
     var
         Date_start: Date;
+        month_interval: Integer;
         intervalFieldOne: Text;
         intervalFieldTwo: Text;
         intervalFieldThree: Text;
